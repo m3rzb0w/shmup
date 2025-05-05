@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -7,7 +8,9 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 #define SHIP_MAX_BULLETS 50
-
+#define MAX_STARS 100        // Define the maximum number of stars
+#define BASE_STAR_SCROLL_SPEED 530 // Base speed for the stars
+#define STAR_SPEED_VARIATION 320 // Range of random speed variation (+/-)
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -25,10 +28,17 @@ typedef struct Ship {
     Vector2 velocity;
 } Ship;
 
+typedef struct Star {
+    Vector2 position;
+    float size;
+    Color color;
+    float speed;
+} Star;
 // -----------------------------------------------------------------------------
 // Globals
 // -----------------------------------------------------------------------------
 Bullet bullets[SHIP_MAX_BULLETS];
+Star stars[MAX_STARS];
 
 float shootCooldown = 0.15f;       // Time between shots
 float timeSinceLastShot = 0.0f;
@@ -40,6 +50,11 @@ void InitBullets(void);
 void ShootBullet(Vector2 shipPos);
 void UpdateBullets(float deltaTime);
 void DrawBullets(void);
+
+void InitStars(void);
+void UpdateStars(float deltaTime);
+void DrawStars(void);
+
 
 // -----------------------------------------------------------------------------
 // Bullet Functions
@@ -93,6 +108,52 @@ int CountActiveBullets(void) {
 }
 
 // -----------------------------------------------------------------------------
+// Star Functions
+// -----------------------------------------------------------------------------
+void InitStars(void) {
+    // Initialize each star with a random position, size, color, and speed
+    for (int i = 0; i < MAX_STARS; i++) {
+        stars[i].position.x = (float)GetRandomValue(0, SCREEN_WIDTH);
+        stars[i].position.y = (float)GetRandomValue(0, SCREEN_HEIGHT);
+        stars[i].size = (float)GetRandomValue(1, 3);
+        stars[i].color = (Color){130, 130, 130, 255};
+        // Assign a random speed to each star
+        stars[i].speed = BASE_STAR_SCROLL_SPEED + (float)GetRandomValue(-STAR_SPEED_VARIATION, STAR_SPEED_VARIATION);
+        // Ensure the speed is not zero or negative (optional, but might look weird)
+        if (stars[i].speed <= 0) {
+            stars[i].speed = 1;
+        }
+    }
+}
+
+void UpdateStars(float deltaTime) {
+    // Update the vertical position of each star based on its individual speed
+    for (int i = 0; i < MAX_STARS; i++) {
+        stars[i].position.y += stars[i].speed * deltaTime;
+
+        // If a star goes off the bottom of the screen, reset its position and properties
+        if (stars[i].position.y > SCREEN_HEIGHT) {
+            stars[i].position.y = (float)GetRandomValue(-5, 0);
+            stars[i].position.x = (float)GetRandomValue(0, SCREEN_WIDTH);
+            stars[i].size = (float)GetRandomValue(1, 3);
+            stars[i].color = (Color){130, 130, 130, 255};
+            // Assign a new random speed when the star resets
+            stars[i].speed = BASE_STAR_SCROLL_SPEED + (float)GetRandomValue(-STAR_SPEED_VARIATION, STAR_SPEED_VARIATION);
+            if (stars[i].speed <= 0) {
+                stars[i].speed = 1;
+            }
+        }
+    }
+}
+
+void DrawStars(void) {
+    // Draw each star as a small circle
+    for (int i = 0; i < MAX_STARS; i++) {
+        DrawCircleV(stars[i].position, stars[i].size, stars[i].color);
+    }
+}
+
+// -----------------------------------------------------------------------------
 // Main
 // -----------------------------------------------------------------------------
 int main(void)
@@ -111,6 +172,7 @@ int main(void)
     };
 
     InitBullets();
+    InitStars();
 
     while (!WindowShouldClose())
     {
@@ -143,11 +205,13 @@ int main(void)
 
         // Update
         UpdateBullets(deltaTime);
+        UpdateStars(deltaTime); 
 
         // Draw
         BeginDrawing();
         ClearBackground(BLACK);
 
+        DrawStars();
         DrawTextureEx(player.texture, player.position, 0.0f, player.scale, WHITE);
         DrawBullets();
 
