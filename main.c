@@ -151,6 +151,8 @@ int main(void)
         DrawTextureEx(player.texture, player.position, 0.0f, player.scale, WHITE);
         DrawBullets();
 
+        DrawFPS(10, 10);
+
         EndDrawing();
     }
 
